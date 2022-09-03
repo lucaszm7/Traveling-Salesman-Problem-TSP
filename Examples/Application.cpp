@@ -689,19 +689,19 @@ public:
 };
 
 
-class TicTacToe : public LGE::Scene_t
+class TSP : public LGE::Scene_t
 {
 public:
-    TicTacToe()
+    TSP()
     {
 
     }
 
-    ~TicTacToe() {}
+    ~TSP() {}
 
     void OnUpdate(float fElapsedTime) override
     {
-        DrawPoint(200, 200, 20, { 1.0, 1.0, 0.0, 1.0 });
+        
     }
 
     void OnImGuiRender() override
@@ -717,7 +717,7 @@ int main(int argc, char** argv)
     Demo.RegisterScene<SceneStaticQuadTree>("Static Quad Tree");
     Demo.RegisterScene<PixelDrawing>("Pixel Drawing");
     Demo.RegisterScene<MinutesPhysics>("10 Minutes Physics");
-    Demo.RegisterScene<TicTacToe>("TicTacToe");
+    Demo.RegisterScene<TSP>("TSP");
     Demo.Run ();
 
     return 0;
