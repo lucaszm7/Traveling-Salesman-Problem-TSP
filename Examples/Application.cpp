@@ -692,21 +692,78 @@ public:
 class TSP : public LGE::Scene_t
 {
 public:
+
+    std::vector<glm::vec2> cities;
+    std::vector<glm::vec2> bestAnswer;
+    unsigned int bestDist;
+    unsigned int totalCities = 5;
+
     TSP()
     {
-
+        bestAnswer.resize(totalCities);
+        for (int i = 0; i < totalCities; ++i)
+        {
+            cities.push_back({ LGE::rand(0, ScreenWidth), LGE::rand(0, ScreenHeight) });
+        }
+        bestAnswer = cities;
+        bestDist = calcDist();
     }
 
     ~TSP() {}
 
+    void foundExatlyTSP()
+    {
+
+    }
+
+    void Swap(unsigned int a, unsigned int b)
+    {
+        glm::vec2 c = cities[a];
+        cities[a] = cities[b];
+        cities[b] = c;
+    }
+
+    unsigned int calcDist()
+    {
+        unsigned int sum = 0;
+        for (int i = 0; i < cities.size() - 1; ++i)
+        {
+            auto diff = cities[i] - cities[i + 1];
+            sum += sqrt(diff.x * diff.x + diff.y * diff.y);
+        }
+        return sum;
+    }
+
     void OnUpdate(float fElapsedTime) override
     {
-        
+        Draw();
+        Swap(LGE::rand(0, cities.size() - 1), LGE::rand(0, cities.size() - 1));
+        unsigned int dist = calcDist();
+        if (dist < bestDist)
+        {
+            bestAnswer = cities;
+            bestDist = dist;
+            std::cout << dist << "\n";
+        }
+    }
+
+    void Draw()
+    {
+        for (int i = 0; i < cities.size(); ++i)
+        {
+            DrawPoint(cities[i].x, cities[i].y);
+            if (i + 1 < cities.size()) DrawLine(cities[i].x, cities[i].y, cities[i + 1].x, cities[i + 1].y, { 0.0f, 1.0f, 1.0f, 1.0f });
+        }
+
+        for (int i = 0; i < bestAnswer.size(); ++i)
+        {
+            if (i + 1 < bestAnswer.size()) DrawLine(bestAnswer[i].x, bestAnswer[i].y, bestAnswer[i + 1].x, bestAnswer[i + 1].y, { 1.0f, 0.0f, 1.0f, 1.0f });
+        }
     }
 
     void OnImGuiRender() override
     {
-        ImGui::Text("Hello Imgui!");
+        ImGui::Text("Smallest Dist: %d", bestDist);
     }
 };
 
