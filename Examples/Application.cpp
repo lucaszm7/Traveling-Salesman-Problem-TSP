@@ -26,11 +26,17 @@ public:
 
     std::vector<glm::vec2> cities;
     std::vector<int> order;
-    std::vector<glm::vec2> bestAnswer;
-    unsigned int bestDist;
-    unsigned int totalCities = 10;
+    std::vector<int> bestOrder;
+    float bestDist = std::numeric_limits<float>::infinity();
 
+
+    int totalPermutations;
+    int countPermutations = 0;
+
+    unsigned int totalCities = 11;
     bool founded = false;
+
+    int subSteps = 100000;
 
     TSP()
     {
@@ -110,23 +116,28 @@ public:
             cities.push_back({ LGE::rand(0, ScreenWidth), LGE::rand(0, ScreenHeight) });
             order.push_back(i);
         }
-        bestAnswer = cities;
+        bestOrder = order;
         bestDist = calcDist();
+
+        totalPermutations = factorial(totalCities);
     }
 
-    ~TSP() override = default;
-
-    void foundExatlyTSP()
+    int factorial(int n) const
     {
-
-    }
-
-    unsigned int calcDist()
-    {
-        unsigned int sum = 0;
-        for (int i = 0; i < cities.size() - 1; ++i)
+        int fac = 1;
+        for (int i = 2; i <= n; ++i)
         {
-            auto diff = cities[i] - cities[i + 1];
+            fac *= i;
+        }
+        return fac;
+    }
+
+    float calcDist()
+    {
+        float sum = 0;
+        for (int i = 0; i < order.size() - 1; ++i)
+        {
+            auto diff = cities[order[i]] - cities[order[i + 1]];
             sum += sqrt(diff.x * diff.x + diff.y * diff.y);
         }
         return sum;
@@ -163,28 +174,29 @@ public:
 
         // STEP 3
         Swap<int>(order, largestI, largestJ);
-        Swap<glm::vec2>(cities, largestI, largestJ);
 
 
         // STEP 4: reverse from largestI + 1, to the end
         std::reverse(order.begin() + largestI + 1, order.end());
-        std::reverse(cities.begin() + largestI + 1, cities.end());
     }
 
     void OnUpdate(float fElapsedTime) override
     {
         Draw();
-        for (int i = 0; i < 1000; ++i)
+        for (int i = 0; i < subSteps; ++i)
         {
+            if (founded) { countPermutations += i;  break; }
+
             Lexico();
-            unsigned int dist = calcDist();
+            float dist = calcDist();
             if (dist < bestDist)
             {
-                bestAnswer = cities;
+                bestOrder = order;
                 bestDist = dist;
-                std::cout << dist << "\n";
             }
         }
+
+        if(!founded) countPermutations += subSteps;
     }
 
     void Draw()
@@ -192,28 +204,41 @@ public:
         for (int i = 0; i < cities.size(); ++i)
         {
             DrawPoint(cities[i].x, cities[i].y);
-            if (!founded)
-                if (i + 1 < cities.size()) DrawLine(cities[i].x, cities[i].y, cities[i + 1].x, cities[i + 1].y, { 0.0f, 1.0f, 1.0f, 1.0f });
         }
 
-        for (int i = 0; i < bestAnswer.size(); ++i)
+        for (int i = 0; i < order.size() - 1; ++i)
         {
-            if (i + 1 < bestAnswer.size()) DrawLine(bestAnswer[i].x, bestAnswer[i].y, bestAnswer[i + 1].x, bestAnswer[i + 1].y, { 1.0f, 0.0f, 1.0f, 1.0f });
+            if (!founded)
+                DrawLine(cities[order[i]].x, cities[order[i]].y, cities[order[i + 1]].x, cities[order[i + 1]].y, { 0.0f, 1.0f, 1.0f, 1.0f });
         }
+        
+        for (int i = 0; i < bestOrder.size() - 1; ++i)
+        {
+                DrawLine(cities[bestOrder[i]].x, cities[bestOrder[i]].y, cities[bestOrder[i + 1]].x, cities[bestOrder[i + 1]].y, { 0.0f, 1.0f, 0.0f, 1.0f });
+        }
+
     }
 
     void OnImGuiRender() override
     {
+        std::string c{};
+        std::string o{};
         if(founded)
             ImGui::Text("FOUNDED!");
-        ImGui::Text("Smallest Dist: %d", bestDist);
-        std::string p{};
+        float percentage = (((float)countPermutations * 100.0f) / (float)totalPermutations);
+        ImGui::Text("Completeness: %.2f%%", percentage);
+        ImGui::Text("Smallest Dist: %.2f", bestDist);
         for (int i = 0; i < order.size(); i++)
-            p += std::to_string(order[i]) + ", ";
-        ImGui::Text("Order: %s", p.c_str());
+            o += std::to_string(bestOrder[i]) + ", ";
+        ImGui::Text("Best Order: %s", o.c_str());
+        for (int i = 0; i < order.size(); i++)
+            c += std::to_string(order[i]) + ", ";
+        ImGui::Text("Order: %s", c.c_str());
+
 
     }
 };
+
 
 int main(int argc, char** argv)
 {
