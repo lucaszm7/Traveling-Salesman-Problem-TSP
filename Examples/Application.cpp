@@ -6,15 +6,23 @@
 #include <vector>
 #include <array>
 #include <list>
+#include <fstream>
+
+#include <stdio.h>
+#include <stdlib.h>
 
 
 constexpr int ScreenWidth = 1280;
 constexpr int ScreenHeight = 960;
 
+static const char* mainFileName;
+
 
 class TSP : public LGE::Scene_t
 {
 public:
+
+    std::string fileName;
 
     std::vector<glm::vec2> cities;
     std::vector<int> order;
@@ -26,7 +34,77 @@ public:
 
     TSP()
     {
-        bestAnswer.resize(totalCities);
+        if (mainFileName != nullptr)
+        {
+            fileName = mainFileName;
+            std::ifstream file;
+            file.open(fileName);
+            if (!file.is_open()) __debugbreak();
+            std::string line;
+            int matCount = 0;
+            
+            while (std::getline(file, line, ' '))
+            {
+                if (line == std::string{' '} || line == std::string{""}) continue;
+                if (line.find('\n') != std::string::npos) { matCount++; break; }
+                matCount++;
+                std::cout << line << "-";
+            }
+
+            // go to the initial of the file
+            file.seekg(0);
+
+            std::cout << "\n";
+            std::cout << "matCount: " << matCount << "\n";
+            std::cout << "\n";
+
+            int** adjacentMatrix = new int*[matCount];
+            for (int i = 0; i < matCount; ++i)
+            {
+                adjacentMatrix[i] = new int[matCount];
+            }
+
+            int row = 0;
+            int collum = 0;
+            while (std::getline(file, line, ' ') && row < matCount)
+            {
+                if (line == std::string{ ' ' } || line == std::string{ "" }) continue;
+                std::cout << line << "-";
+                auto t = line.find('\n');
+                if (t != std::string::npos) 
+                { 
+                    std::string num = line.substr(0, t);
+                    adjacentMatrix[row][collum] = atoi(num.c_str());
+                    collum = 0; row++; 
+                    std::string num2 = line.substr(t, line.size()-1);
+                    adjacentMatrix[row][collum] = atoi(num2.c_str());
+                    collum++;
+                    continue;
+                }
+                adjacentMatrix[row][collum] = atoi(line.c_str());
+                collum++;
+            }
+
+            /*std::cout << "\n";
+            std::cout << "\n";
+
+            for (int i = 0; i < matCount; i++)
+            {
+                for (int j = 0; j < matCount; j++)
+                {
+                    std::cout << adjacentMatrix[i][j] << ", ";
+                }
+                std::cout << "\n";
+
+            }*/
+
+        }
+        else
+        {
+            std::cout << "No Input File!\n";
+        }
+        std::srand(std::time(nullptr));
+        bestOrder.resize(totalCities);
         for (int i = 0; i < totalCities; ++i)
         {
             cities.push_back({ LGE::rand(0, ScreenWidth), LGE::rand(0, ScreenHeight) });
@@ -139,6 +217,9 @@ public:
 
 int main(int argc, char** argv)
 {
+    if (argc > 1) mainFileName = argv[1];
+    else mainFileName = nullptr;
+
     LGE::Application Demo;
     Demo.RegisterScene<TSP>("TSP");
     Demo.Run ();
