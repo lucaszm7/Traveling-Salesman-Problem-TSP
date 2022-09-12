@@ -1,12 +1,70 @@
 #include <iostream>
 #include "Renderer.h"
 
-void GLAPIENTRY
+//void GLAPIENTRY
+//DebugCallBack(GLenum source, GLenum type, GLuint id, GLenum severity,
+//    GLsizei length, const char* message, const void* userParam)
+//{
+//    std::cout << "\n\033[1;31m[GL DEBUG CALLBACK ERROR]\033[0m\n" << "\033[1;33m" << message << "\033[0m" << std::endl;
+//    ASSERT();
+//}
+
+void APIENTRY 
 DebugCallBack(GLenum source, GLenum type, GLuint id, GLenum severity,
-    GLsizei length, const char* message, const void* userParam)
+    GLsizei length, const GLchar* message, const void* userParam)
 {
-    std::cout << "\n\033[1;31m[GL DEBUG CALLBACK ERROR]\033[0m\n" << "\033[1;33m" << message << "\033[0m" << std::endl;
-    ASSERT();
+#ifndef DEBUG || DEBINFO
+    if (severity != GL_DEBUG_SEVERITY_MEDIUM && severity != GL_DEBUG_SEVERITY_HIGH) return;
+#endif
+    std::cout << "\n\033[1;31m ------------ DEBUG ------------ \033[0m\n" << std::endl;
+    std::cout << "Message: \033[1;33m" << message << "]\033[0m\n" << std::endl;
+    std::cout << "Type: ";
+    switch (type) {
+    case GL_DEBUG_TYPE_ERROR:
+        std::cout << "ERROR";
+        break;
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+        std::cout << "DEPRECATED_BEHAVIOR";
+        break;
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+        std::cout << "UNDEFINED_BEHAVIOR";
+        break;
+    case GL_DEBUG_TYPE_PORTABILITY:
+        std::cout << "PORTABILITY";
+        break;
+    case GL_DEBUG_TYPE_PERFORMANCE:
+        std::cout << "PERFORMANCE";
+        break;
+    case GL_DEBUG_TYPE_OTHER:
+        std::cout << "OTHER";
+        break;
+    default:
+        std::cout << type;
+        break;
+    }
+    std::cout << std::endl;
+
+    std::cout << "ID: " << id << std::endl;
+    std::cout << "Severity: ";
+    switch (severity) {
+    case GL_DEBUG_SEVERITY_LOW:
+        std::cout << "LOW";
+        break;
+    case GL_DEBUG_SEVERITY_MEDIUM:
+        std::cout << "MEDIUM";
+        break;
+    case GL_DEBUG_SEVERITY_HIGH:
+        std::cout << "HIGH";
+        break;
+    case GL_DEBUG_SEVERITY_NOTIFICATION:
+        std::cout << "Generic Notification";
+        break;
+    default:
+        std::cout << severity;
+        break;
+    }
+    std::cout << std::endl;
+    std::cout << "\n\033[1;31m ------------ END OF DEBUG ------------ \033[0m\n" << std::endl;
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -185,7 +243,7 @@ GLFWwindow* Renderer::SetupGLFW()
     if (!window)
         exit(-1);
     glfwMakeContextCurrent(window);
-    // glfwSwapInterval(1);
+    glfwSwapInterval(0);
 
     // int state = glfwGetKey(window, GLFW_KEY_E);
     // glfwGetCursorPos(window, &xpos, &ypos);

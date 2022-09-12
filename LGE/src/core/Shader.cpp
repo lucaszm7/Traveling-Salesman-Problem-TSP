@@ -97,6 +97,7 @@ unsigned int Shader::CompileShader(unsigned int type, const std::string& source)
             " shader!" << std::endl;
         std::cout << message << std::endl;
         glDeleteShader(id);
+        __debugbreak();
         return 0;
     }
 

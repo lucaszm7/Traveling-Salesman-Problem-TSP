@@ -78,6 +78,7 @@
     <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Configuration)\$(PlatformTarget)\</OutDir>
     <IntDir>$(SolutionDir)bin\$(ProjectName)\intermediates\$(Configuration)\$(PlatformTarget)\</IntDir>
     <IgnoreImportLibrary>false</IgnoreImportLibrary>
+    <TargetName>$(ProjectName)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Configuration)\$(PlatformTarget)\</OutDir>

@@ -1,14 +1,14 @@
 #shader vertex
 #version 330 core
         
-layout(location = 0) in vec4 position;
-layout(location = 1) in vec4 color;
+layout(location = 0) in vec4 position = vec4(0);
+layout(location = 1) in vec4 color = vec4(0);
 
-out vec4 v_Color;
+out vec4 v_Color = vec4(0);
 
-uniform mat4 u_MVP;
+uniform mat4 u_MVP = mat4(0);
 uniform int u_color = 0;
-uniform vec4 u_Color;
+uniform vec4 u_Color = vec4(0);
 
 
 void main()
@@ -30,9 +30,9 @@ void main()
 #shader fragment
 #version 330 core
         
-layout(location = 0) out vec4 color;
+layout(location = 0) out vec4 color = vec4(0);
 
-in vec4 v_Color;
+in vec4 v_Color = vec4(0);
 
 void main()
 {

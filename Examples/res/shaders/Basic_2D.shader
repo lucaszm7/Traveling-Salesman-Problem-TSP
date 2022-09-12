@@ -6,7 +6,7 @@ layout(location = 1) in vec4 color;
 
 out vec4 v_Color;
 
-uniform mat4 u_MVP;
+uniform mat4 u_MVP = mat4(0);
 uniform vec4 u_Color = {1.0f, 0.0f, 0.0f, 1.0f};
 
 
