@@ -28,24 +28,25 @@ public:
     std::vector<glm::vec2> cities;
     std::vector<int> order;
     std::vector<int> bestOrder;
+    std::vector<int> bestDisplayOrder;
     float bestDist = std::numeric_limits<float>::infinity();
+    float bestDisplayDist = std::numeric_limits<float>::infinity();
 
     int** adjacentMatrix;
 
     unsigned long long totalPermutations;
     unsigned long long countPermutations = 0;
 
-    unsigned int totalCities = 12;
+    unsigned int totalCities = 10;
     bool founded = false;
 
-    int subSteps = 1000000;
+    int subSteps = 10000;
     bool inputFile = false;
 
     std::chrono::steady_clock::time_point start;
-    std::chrono::duration<double> duration;
+    std::chrono::duration<double> duration{0};
 
     TSP()
-        : duration(0)
     {
         start = std::chrono::high_resolution_clock::now();
         int nodeCount = 0;
@@ -119,8 +120,8 @@ public:
             cities.push_back({ LGE::rand(0, ScreenWidth), LGE::rand(0, ScreenHeight) });
             order.push_back(i);
         }
-        bestOrder = order;
-        bestDist = calcDist();
+        bestDisplayOrder = bestOrder = order;
+        bestDist = calcDist().x; bestDisplayDist = calcDist().y;
 
         totalPermutations = factorial(nodeCount);
     }
@@ -135,26 +136,29 @@ public:
         return fac;
     }
 
-    float calcDist()
+    glm::vec2 calcDist()
     {
-        float sum = 0;
+        glm::vec2 sum = {0, 0};
+
+        for (int i = 0; i < order.size() - 1; ++i)
+        {
+            auto diff = cities[order[i]] - cities[order[i + 1]];
+            sum.y += sqrt(diff.x * diff.x + diff.y * diff.y);
+        }
 
         if (inputFile)
         {
             for (int i = 0; i < order.size() - 1; ++i)
             {
-                sum += adjacentMatrix[order[i]][order[i + 1]];
+                sum.x += adjacentMatrix[order[i]][order[i + 1]];
             }
-            sum += adjacentMatrix[order[0]][order[order.size() - 1]];
+            sum.x += adjacentMatrix[order[0]][order[order.size() - 1]];
         }
         else
         {
-            for (int i = 0; i < order.size() - 1; ++i)
-            {
-                auto diff = cities[order[i]] - cities[order[i + 1]];
-                sum += sqrt(diff.x * diff.x + diff.y * diff.y);
-            }
+            sum.x = sum.y;
         }
+        
         return sum;
     }
 
@@ -187,7 +191,6 @@ public:
         }
 
 
-
         // STEP 3
         Swap<int>(order, largestI, largestJ);
 
@@ -204,14 +207,18 @@ public:
             if (founded) { countPermutations += i;  break; }
 
             Lexico();
-            float dist = calcDist();
-            if (dist < bestDist)
+            glm::vec2 dist = calcDist();
+            if (dist.x < bestDist)
             {
                 bestOrder = order;
-                bestDist = dist;
+                bestDist = dist.x;
+            }
+            if (dist.y < bestDisplayDist)
+            {
+                bestDisplayOrder = order;
+                bestDisplayDist = dist.y;
             }
         }
-
         if(!founded) countPermutations += subSteps;
     }
 
@@ -230,7 +237,7 @@ public:
         
         for (int i = 0; i < bestOrder.size() - 1; ++i)
         {
-                DrawLine(cities[bestOrder[i]].x, cities[bestOrder[i]].y, cities[bestOrder[i + 1]].x, cities[bestOrder[i + 1]].y, { 0.0f, 1.0f, 0.0f, 1.0f });
+                DrawLine(cities[bestDisplayOrder[i]].x, cities[bestDisplayOrder[i]].y, cities[bestDisplayOrder[i + 1]].x, cities[bestDisplayOrder[i + 1]].y, { 0.0f, 1.0f, 0.0f, 1.0f });
         }
 
     }
@@ -240,12 +247,11 @@ public:
         std::string c{};
         std::string o{};
         if(founded)
-            ImGui::Text("FOUNDED!");
-        duration = std::chrono::high_resolution_clock::now() - start;
+            ImGui::Text("FINISHED!");
+        if(!founded) duration = std::chrono::high_resolution_clock::now() - start;
         ImGui::Text("Time taked: %.2f s", duration.count());
         double percentage = (((double)countPermutations * 100.0f) / (double)totalPermutations);
-        ImGui::Text("Completeness: %.2f%%", percentage);
-        ImGui::Text("Tested %.2f of %.2f", (double)countPermutations, (double)totalPermutations);
+        ImGui::Text("Completeness: %.6f%%", percentage);
         ImGui::Text("Smallest Dist: %.2f", bestDist);
         for (int i = 0; i < order.size(); i++)
             o += std::to_string(bestOrder[i]) + ", ";
@@ -253,7 +259,6 @@ public:
         for (int i = 0; i < order.size(); i++)
             c += std::to_string(order[i]) + ", ";
         ImGui::Text("Order: \n%s", c.c_str());
-
 
     }
 };
