@@ -29,19 +29,26 @@ public:
     std::vector<int> bestOrder;
     float bestDist = std::numeric_limits<float>::infinity();
 
+    int** adjacentMatrix;
 
-    int totalPermutations;
-    int countPermutations = 0;
+    unsigned long long totalPermutations;
+    unsigned long long countPermutations = 0;
 
-    unsigned int totalCities = 11;
+    unsigned int totalCities = 12;
     bool founded = false;
 
-    int subSteps = 100000;
+    int subSteps = 1000000;
+    bool inputFile = false;
 
     TSP()
     {
+
+        int nodeCount = 0;
+
+
         if (mainFileName != nullptr)
         {
+            inputFile = true;
             fileName = mainFileName;
             std::ifstream file;
             file.open(fileName);
@@ -64,7 +71,9 @@ public:
             std::cout << "matCount: " << matCount << "\n";
             std::cout << "\n";
 
-            int** adjacentMatrix = new int*[matCount];
+            nodeCount = matCount;
+            adjacentMatrix = new int*[matCount];
+
             for (int i = 0; i < matCount; ++i)
             {
                 adjacentMatrix[i] = new int[matCount];
@@ -90,28 +99,17 @@ public:
                 adjacentMatrix[row][collum] = atoi(line.c_str());
                 collum++;
             }
-
-            /*std::cout << "\n";
-            std::cout << "\n";
-
-            for (int i = 0; i < matCount; i++)
-            {
-                for (int j = 0; j < matCount; j++)
-                {
-                    std::cout << adjacentMatrix[i][j] << ", ";
-                }
-                std::cout << "\n";
-
-            }*/
-
         }
+
         else
         {
+            nodeCount = totalCities;
             std::cout << "No Input File!\n";
         }
+
         std::srand(std::time(nullptr));
-        bestOrder.resize(totalCities);
-        for (int i = 0; i < totalCities; ++i)
+        bestOrder.resize(nodeCount);
+        for (int i = 0; i < nodeCount; ++i)
         {
             cities.push_back({ LGE::rand(0, ScreenWidth), LGE::rand(0, ScreenHeight) });
             order.push_back(i);
@@ -119,12 +117,12 @@ public:
         bestOrder = order;
         bestDist = calcDist();
 
-        totalPermutations = factorial(totalCities);
+        totalPermutations = factorial(nodeCount);
     }
 
-    int factorial(int n) const
+    unsigned long long factorial(int n) const
     {
-        int fac = 1;
+        unsigned long long fac = 1;
         for (int i = 2; i <= n; ++i)
         {
             fac *= i;
@@ -135,11 +133,23 @@ public:
     float calcDist()
     {
         float sum = 0;
-        for (int i = 0; i < order.size() - 1; ++i)
+
+        if (inputFile)
         {
-            auto diff = cities[order[i]] - cities[order[i + 1]];
-            sum += sqrt(diff.x * diff.x + diff.y * diff.y);
+            for (int i = 0; i < order.size() - 1; ++i)
+            {
+                sum += adjacentMatrix[order[i]][order[i + 1]];
+            }
         }
+        else
+        {
+            for (int i = 0; i < order.size() - 1; ++i)
+            {
+                auto diff = cities[order[i]] - cities[order[i + 1]];
+                sum += sqrt(diff.x * diff.x + diff.y * diff.y);
+            }
+        }
+        sum += 
         return sum;
     }
 
@@ -170,6 +180,7 @@ public:
         {
             if (order[largestI] < order[j]) largestJ = j;
         }
+
 
 
         // STEP 3
@@ -225,7 +236,7 @@ public:
         std::string o{};
         if(founded)
             ImGui::Text("FOUNDED!");
-        float percentage = (((float)countPermutations * 100.0f) / (float)totalPermutations);
+        double percentage = (((double)countPermutations * 100.0f) / (double)totalPermutations);
         ImGui::Text("Completeness: %.2f%%", percentage);
         ImGui::Text("Smallest Dist: %.2f", bestDist);
         for (int i = 0; i < order.size(); i++)
@@ -242,7 +253,11 @@ public:
 
 int main(int argc, char** argv)
 {
-    if (argc > 1) mainFileName = argv[1];
+    if (argc > 1)
+    {
+        mainFileName = argv[1];
+        std::cout << mainFileName << "\n";
+    }
     else mainFileName = nullptr;
 
     LGE::Application Demo;
