@@ -7,6 +7,7 @@
 #include <array>
 #include <list>
 #include <fstream>
+#include <chrono>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,9 +41,13 @@ public:
     int subSteps = 1000000;
     bool inputFile = false;
 
-    TSP()
-    {
+    std::chrono::steady_clock::time_point start;
+    std::chrono::duration<double> duration;
 
+    TSP()
+        : duration(0)
+    {
+        start = std::chrono::high_resolution_clock::now();
         int nodeCount = 0;
 
 
@@ -140,6 +145,7 @@ public:
             {
                 sum += adjacentMatrix[order[i]][order[i + 1]];
             }
+            sum += adjacentMatrix[order[0]][order[order.size() - 1]];
         }
         else
         {
@@ -149,7 +155,6 @@ public:
                 sum += sqrt(diff.x * diff.x + diff.y * diff.y);
             }
         }
-        sum += 
         return sum;
     }
 
@@ -236,15 +241,18 @@ public:
         std::string o{};
         if(founded)
             ImGui::Text("FOUNDED!");
+        duration = std::chrono::high_resolution_clock::now() - start;
+        ImGui::Text("Time taked: %.2f s", duration.count());
         double percentage = (((double)countPermutations * 100.0f) / (double)totalPermutations);
         ImGui::Text("Completeness: %.2f%%", percentage);
+        ImGui::Text("Tested %.2f of %.2f", (double)countPermutations, (double)totalPermutations);
         ImGui::Text("Smallest Dist: %.2f", bestDist);
         for (int i = 0; i < order.size(); i++)
             o += std::to_string(bestOrder[i]) + ", ";
-        ImGui::Text("Best Order: %s", o.c_str());
+        ImGui::Text("Best Order: \n%s", o.c_str());
         for (int i = 0; i < order.size(); i++)
             c += std::to_string(order[i]) + ", ";
-        ImGui::Text("Order: %s", c.c_str());
+        ImGui::Text("Order: \n%s", c.c_str());
 
 
     }
