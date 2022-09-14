@@ -32,9 +32,10 @@ public:
     float bestDist = std::numeric_limits<float>::infinity();
     float bestDisplayDist = std::numeric_limits<float>::infinity();
 
+    int nodeCount = 0;
     int** adjacentMatrix;
 
-    unsigned long long totalPermutations;
+    unsigned long long totalPermutations = 0;
     unsigned long long countPermutations = 0;
 
     bool founded = false;
@@ -48,83 +49,27 @@ public:
 
     TSP()
     {
-        start = std::chrono::high_resolution_clock::now();
-        int nodeCount = 0;
-
-        fileName = fileNames[selectedFile];
-        std::ifstream file;
-        file.open(fileName);
-        if (!file.is_open()) __debugbreak();
-        std::string line;
-        int matCount = 0;
-            
-        while (std::getline(file, line, ' '))
-        {
-            if (line == std::string{ ' ' } || line == std::string{ "" } ||
-                line == std::string{ '\t' }) continue;
-            if (line == std::string{ '\n' }) break;
-            if (line.find('\n') != std::string::npos) { matCount++; break; }
-            matCount++;
-        }
-
-        // go to the initial of the file
-        file.seekg(0);
-
-        std::cout << "Nodes count: " << matCount << "\n";
-
-        nodeCount = matCount;
-        adjacentMatrix = new int*[matCount];
-
-        for (int i = 0; i < matCount; ++i)
-        {
-            adjacentMatrix[i] = new int[matCount];
-        }
-
-        int row = 0;
-        int collum = 0;
-        while (std::getline(file, line, ' ') && row < matCount)
-        {
-            if (line == std::string{ ' ' } || line == std::string{ "" } ||
-                line == std::string{ '\t'} || line == std::string{ '\n' }) continue;
-
-            auto t = line.find('\n');
-            if (t != std::string::npos) 
-            { 
-                std::string num = line.substr(0, t);
-                adjacentMatrix[row][collum] = atoi(num.c_str());
-                collum = 0; row++; 
-                std::string num2 = line.substr(t, line.size()-1);
-                adjacentMatrix[row][collum] = atoi(num2.c_str());
-                collum++;
-                continue;
-            }
-            adjacentMatrix[row][collum] = atoi(line.c_str());
-            collum++;
-        }
-
-        std::srand(std::time(nullptr));
-        bestOrder.resize(nodeCount);
-        for (int i = 0; i < nodeCount; ++i)
-        {
-            cities.push_back({ LGE::rand(0, ScreenWidth), LGE::rand(0, ScreenHeight) });
-            order.push_back(i);
-        }
-        bestDisplayOrder = order;
-        bestOrder = order;
-        bestDist = calcDist().x; bestDisplayDist = calcDist().y;
-
-        totalPermutations = factorial(nodeCount);
+        reset();
     }
 
     void reset()
     {
+        std::srand(std::time(nullptr));
         start = std::chrono::high_resolution_clock::now();
-        int nodeCount = 0;
 
         countPermutations = 0;
-
         founded = false;
         makeFile = false;
+
+        genAdjacentMatrix();
+        initGraph();
+
+        totalPermutations = factorial(nodeCount);
+    }
+
+    void genAdjacentMatrix()
+    {
+        nodeCount = 0;
 
         fileName = fileNames[selectedFile];
         std::ifstream file;
@@ -142,11 +87,11 @@ public:
             if (line == std::string{ ' ' } || line == std::string{ "" } ||
                 line == std::string{ '\t' }) continue;
             if (line == std::string{ '\n' }) break;
-            if (line.find('\n') != std::string::npos) 
+            if (line.find('\n') != std::string::npos)
             {
-                if(line.find('\n') != 0)
-                    matCount++; 
-                break; 
+                if (line.find('\n') != 0)
+                    matCount++;
+                break;
             }
             matCount++;
         }
@@ -167,11 +112,11 @@ public:
         int row = 0;
         int collum = 0;
 
-        
+
         while (std::getline(file, line, sapChar) && row < matCount)
         {
             if (line == std::string{ ' ' } || line == std::string{ "" } ||
-                line == std::string{ '\t'} || line == std::string{'\n'}) continue;
+                line == std::string{ '\t' } || line == std::string{ '\n' }) continue;
 
             auto t = line.find('\n');
             if (t != std::string::npos)
@@ -188,8 +133,10 @@ public:
             collum++;
         }
 
-        std::srand(std::time(nullptr));
-        bestOrder.resize(nodeCount);
+    }
+
+    void initGraph()
+    {
         cities.clear();
         order.clear();
         for (int i = 0; i < nodeCount; ++i)
@@ -199,9 +146,8 @@ public:
         }
         bestDisplayOrder = order;
         bestOrder = order;
-        bestDist = calcDist().x; bestDisplayDist = calcDist().y;
-
-        totalPermutations = factorial(nodeCount);
+        bestDist = calcDist().x; 
+        bestDisplayDist = calcDist().y;
     }
 
     unsigned long long factorial(int n) const
@@ -306,6 +252,7 @@ public:
 
             Lexico();
             glm::vec2 dist = calcDist();
+
             if (dist.x < bestDist)
             {
                 bestOrder = order;
@@ -318,12 +265,7 @@ public:
             }
         }
         if (!founded) 
-        {
             countPermutations += subSteps;
-            duration = std::chrono::high_resolution_clock::now() - start;
-            auto minutes = (duration.count() / 60);
-            if (order.size() >= 15 && (int)minutes / (1.0 * fileCount) == 1) { genOutputFile(); fileCount++; }
-        }
     }
 
     void Draw()
@@ -351,24 +293,31 @@ public:
     {
         std::string c{};
         std::string o{};
+
         ImGui::Combo(" ", &selectedFile, fileNames, IM_ARRAYSIZE(fileNames));
         ImGui::SameLine();
         if (ImGui::Button("Reset"))
             reset();
-        if(founded)
-            ImGui::Text("FINISHED!");
+
         if(!founded) duration = std::chrono::high_resolution_clock::now() - start;
         ImGui::Text("Time taked: %.2f s", duration.count());
+
         double percentage = (((double)countPermutations * 100.0f) / (double)totalPermutations);
         ImGui::Text("Completeness: %.6f%%", percentage);
+        if (founded)
+        {
+            ImGui::SameLine();
+            ImGui::Text("FINISHED!");
+        }
+
         ImGui::Text("Smallest Dist: %.2f", bestDist);
         for (int i = 0; i < order.size(); i++)
             o += std::to_string(bestOrder[i]) + ", ";
         ImGui::Text("Best Order: \n%s", o.c_str());
-        for (int i = 0; i < order.size(); i++)
-            c += std::to_string(order[i]) + ", ";
-        ImGui::Text("Order: \n%s", c.c_str());
 
+        for (const auto& ord : order)
+            c += std::to_string(ord) + ", ";
+        ImGui::Text("Order: \n%s", c.c_str());
     }
 };
 
