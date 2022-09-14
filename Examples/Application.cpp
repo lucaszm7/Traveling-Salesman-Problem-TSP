@@ -16,8 +16,8 @@
 constexpr int ScreenWidth = 1280;
 constexpr int ScreenHeight = 960;
 
-static const char* mainFileName;
-
+static const char* fileNames[]{ "tsp1_253.txt","tsp2_1248.txt","tsp3_1194.txt","tsp4_7013.txt","tsp5_27603.txt" };
+static int selectedFile = 0;
 
 class TSP : public LGE::Scene_t
 {
@@ -37,12 +37,11 @@ public:
     unsigned long long totalPermutations;
     unsigned long long countPermutations = 0;
 
-    unsigned int totalCities = 10;
     bool founded = false;
     bool makeFile = false;
+    int fileCount = 1;
 
-    int subSteps = 10000;
-    bool inputFile = false;
+    int subSteps = 100000;
 
     std::chrono::steady_clock::time_point start;
     std::chrono::duration<double> duration{0};
@@ -52,66 +51,59 @@ public:
         start = std::chrono::high_resolution_clock::now();
         int nodeCount = 0;
 
-
-        if (mainFileName != nullptr)
-        {
-            inputFile = true;
-            fileName = mainFileName;
-            std::ifstream file;
-            file.open(fileName);
-            if (!file.is_open()) __debugbreak();
-            std::string line;
-            int matCount = 0;
+        fileName = fileNames[selectedFile];
+        std::ifstream file;
+        file.open(fileName);
+        if (!file.is_open()) __debugbreak();
+        std::string line;
+        int matCount = 0;
             
-            while (std::getline(file, line, ' '))
-            {
-                if (line == std::string{' '} || line == std::string{""}) continue;
-                if (line.find('\n') != std::string::npos) { matCount++; break; }
-                matCount++;
-                std::cout << line << "-";
-            }
-
-            // go to the initial of the file
-            file.seekg(0);
-
-            std::cout << "\n";
-            std::cout << "matCount: " << matCount << "\n";
-            std::cout << "\n";
-
-            nodeCount = matCount;
-            adjacentMatrix = new int*[matCount];
-
-            for (int i = 0; i < matCount; ++i)
-            {
-                adjacentMatrix[i] = new int[matCount];
-            }
-
-            int row = 0;
-            int collum = 0;
-            while (std::getline(file, line, ' ') && row < matCount)
-            {
-                if (line == std::string{ ' ' } || line == std::string{ "" }) continue;
-                std::cout << line << "-";
-                auto t = line.find('\n');
-                if (t != std::string::npos) 
-                { 
-                    std::string num = line.substr(0, t);
-                    adjacentMatrix[row][collum] = atoi(num.c_str());
-                    collum = 0; row++; 
-                    std::string num2 = line.substr(t, line.size()-1);
-                    adjacentMatrix[row][collum] = atoi(num2.c_str());
-                    collum++;
-                    continue;
-                }
-                adjacentMatrix[row][collum] = atoi(line.c_str());
-                collum++;
-            }
+        while (std::getline(file, line, ' '))
+        {
+            if (line == std::string{ ' ' } || line == std::string{ "" } ||
+                line == std::string{ '\t' }) continue;
+            if (line == std::string{ '\n' }) break;
+            if (line.find('\n') != std::string::npos) { matCount++; break; }
+            matCount++;
+            std::cout << line << "-";
         }
 
-        else
+        // go to the initial of the file
+        file.seekg(0);
+
+        std::cout << "\n";
+        std::cout << "matCount: " << matCount << "\n";
+        std::cout << "\n";
+
+        nodeCount = matCount;
+        adjacentMatrix = new int*[matCount];
+
+        for (int i = 0; i < matCount; ++i)
         {
-            nodeCount = totalCities;
-            std::cout << "No Input File!\n";
+            adjacentMatrix[i] = new int[matCount];
+        }
+
+        int row = 0;
+        int collum = 0;
+        while (std::getline(file, line, ' ') && row < matCount)
+        {
+            if (line == std::string{ ' ' } || line == std::string{ "" } ||
+                line == std::string{ '\t'} || line == std::string{ '\n' }) continue;
+
+            std::cout << line << "-";
+            auto t = line.find('\n');
+            if (t != std::string::npos) 
+            { 
+                std::string num = line.substr(0, t);
+                adjacentMatrix[row][collum] = atoi(num.c_str());
+                collum = 0; row++; 
+                std::string num2 = line.substr(t, line.size()-1);
+                adjacentMatrix[row][collum] = atoi(num2.c_str());
+                collum++;
+                continue;
+            }
+            adjacentMatrix[row][collum] = atoi(line.c_str());
+            collum++;
         }
 
         std::srand(std::time(nullptr));
@@ -121,7 +113,100 @@ public:
             cities.push_back({ LGE::rand(0, ScreenWidth), LGE::rand(0, ScreenHeight) });
             order.push_back(i);
         }
-        bestDisplayOrder = bestOrder = order;
+        bestDisplayOrder = order;
+        bestOrder = order;
+        bestDist = calcDist().x; bestDisplayDist = calcDist().y;
+
+        totalPermutations = factorial(nodeCount);
+    }
+
+    void reset()
+    {
+        start = std::chrono::high_resolution_clock::now();
+        int nodeCount = 0;
+
+        countPermutations = 0;
+
+        founded = false;
+        makeFile = false;
+
+        fileName = fileNames[selectedFile];
+        std::ifstream file;
+        file.open(fileName);
+        if (!file.is_open()) __debugbreak();
+        std::string line;
+        int matCount = 0;
+
+        char sapChar;
+        if (selectedFile == 3) sapChar = '\t';
+        else sapChar = ' ';
+
+        while (std::getline(file, line, sapChar))
+        {
+            if (line == std::string{ ' ' } || line == std::string{ "" } ||
+                line == std::string{ '\t' }) continue;
+            if (line == std::string{ '\n' }) break;
+            if (line.find('\n') != std::string::npos) 
+            {
+                if(line.find('\n') != 0)
+                    matCount++; 
+                break; 
+            }
+            matCount++;
+            std::cout << line << "-";
+        }
+
+        // go to the initial of the file
+        file.seekg(0);
+
+        std::cout << "\n";
+        std::cout << "matCount: " << matCount << "\n";
+        std::cout << "\n";
+
+        nodeCount = matCount;
+        adjacentMatrix = new int* [matCount];
+
+        for (int i = 0; i < matCount; ++i)
+        {
+            adjacentMatrix[i] = new int[matCount];
+        }
+
+        int row = 0;
+        int collum = 0;
+
+        
+        while (std::getline(file, line, sapChar) && row < matCount)
+        {
+            if (line == std::string{ ' ' } || line == std::string{ "" } ||
+                line == std::string{ '\t'} || line == std::string{'\n'}) continue;
+
+            std::cout << line << "-";
+            auto t = line.find('\n');
+            if (t != std::string::npos)
+            {
+                std::string num = line.substr(0, t);
+                adjacentMatrix[row][collum] = atoi(num.c_str());
+                collum = 0; row++;
+                std::string num2 = line.substr(t, line.size() - 1);
+                adjacentMatrix[row][collum] = atoi(num2.c_str());
+                collum++;
+                continue;
+            }
+            adjacentMatrix[row][collum] = atoi(line.c_str());
+            collum++;
+        }
+
+        std::srand(std::time(nullptr));
+        bestOrder.resize(nodeCount);
+        cities.clear();
+        order.clear();
+        for (int i = 0; i < nodeCount; ++i)
+        {
+            cities.push_back({ LGE::rand(0, ScreenWidth), LGE::rand(0, ScreenHeight) });
+            order.push_back(i);
+        }
+        bestDisplayOrder = order;
+        bestOrder = order;
         bestDist = calcDist().x; bestDisplayDist = calcDist().y;
 
         totalPermutations = factorial(nodeCount);
@@ -143,22 +228,18 @@ public:
 
         for (int i = 0; i < order.size() - 1; ++i)
         {
+            sum.x += (float)adjacentMatrix[order[i]][order[i + 1]];
+        }
+        sum.x += (float)adjacentMatrix[order[0]][order[order.size() - 1]];
+
+        for (int i = 0; i < order.size() - 1; ++i)
+        {
             auto diff = cities[order[i]] - cities[order[i + 1]];
             sum.y += sqrt(diff.x * diff.x + diff.y * diff.y);
         }
 
-        if (inputFile)
-        {
-            for (int i = 0; i < order.size() - 1; ++i)
-            {
-                sum.x += adjacentMatrix[order[i]][order[i + 1]];
-            }
-            sum.x += adjacentMatrix[order[0]][order[order.size() - 1]];
-        }
-        else
-        {
-            sum.x = sum.y;
-        }
+        auto diff = cities[order[0]] - cities[order[order.size() - 1]];
+        sum.y += sqrt(diff.x * diff.x + diff.y * diff.y);
         
         return sum;
     }
@@ -200,31 +281,35 @@ public:
         std::reverse(order.begin() + largestI + 1, order.end());
     }
 
+    void genOutputFile()
+    {
+        makeFile = true;
+        auto fileOutputName = fileName.substr(0, fileName.find_first_of('.'));
+        double percentage = (((double)countPermutations * 100.0f) / (double)totalPermutations);
+        fileOutputName += "_exact_results.txt";
+        std::cout << "\n\nOutput file: " << fileOutputName << "\n";
+
+        std::ofstream results(fileOutputName);
+        results << "Time Taken: " << std::to_string(duration.count()) << "s\n";
+        results << "Percentage Complete: " << percentage << "%\n";
+        std::string o{};
+        for (int i = 0; i < order.size(); i++)
+            o += std::to_string(bestOrder[i]) + ", ";
+        results << "Best Order: " << o << "\n";
+        results << "Minimal Distance: " << bestDist << "\n";
+        results.close();
+    }
+
     void OnUpdate(float fElapsedTime) override
     {
         Draw();
         for (int i = 0; i < subSteps; ++i)
         {
-            if (founded) 
+            if (founded)
             { 
-                if (!makeFile)
-                {
-                    makeFile = true;
-                    auto fileOutputName = fileName.substr(0, fileName.find_first_of('.'));
-                    fileOutputName += "_exact_results.txt";
-                    std::cout << "Output file: " << fileOutputName << "\n";
-
-                    std::ofstream results(fileOutputName);
-                    results << "Time Taken: " << std::to_string(duration.count()) << "s\n";
-                    std::string o{};
-                    for (int i = 0; i < order.size(); i++)
-                        o += std::to_string(bestOrder[i]) + ", ";
-                    results << "Best Order: " << o << "\n";
-                    results << "Minimal Distance: " << bestDist << "\n";
-                    results.close();
-                }
                 countPermutations += i;  
-                break; 
+                if (!makeFile) { genOutputFile(); makeFile = true; }
+                break;
             }
 
             Lexico();
@@ -240,14 +325,20 @@ public:
                 bestDisplayDist = dist.y;
             }
         }
-        if(!founded) countPermutations += subSteps;
+        if (!founded) 
+        {
+            countPermutations += subSteps;
+            duration = std::chrono::high_resolution_clock::now() - start;
+            auto minutes = (duration.count() / 60);
+            if (order.size() >= 15 && (int)minutes / (1.0 * fileCount) == 1) { genOutputFile(); fileCount++; }
+        }
     }
 
     void Draw()
     {
-        for (int i = 0; i < cities.size(); ++i)
+        for (const auto& city : cities)
         {
-            DrawPoint(cities[i].x, cities[i].y);
+            DrawPoint(city.x, city.y);
         }
 
         for (int i = 0; i < order.size() - 1; ++i)
@@ -256,10 +347,11 @@ public:
                 DrawLine(cities[order[i]].x, cities[order[i]].y, cities[order[i + 1]].x, cities[order[i + 1]].y, { 0.0f, 1.0f, 1.0f, 1.0f });
         }
         
-        for (int i = 0; i < bestOrder.size() - 1; ++i)
+        for (int i = 0; i < bestDisplayOrder.size() - 1; ++i)
         {
-                DrawLine(cities[bestDisplayOrder[i]].x, cities[bestDisplayOrder[i]].y, cities[bestDisplayOrder[i + 1]].x, cities[bestDisplayOrder[i + 1]].y, { 0.0f, 1.0f, 0.0f, 1.0f });
+            DrawLine(cities[bestDisplayOrder[i]].x, cities[bestDisplayOrder[i]].y, cities[bestDisplayOrder[i + 1]].x, cities[bestDisplayOrder[i + 1]].y, { 0.0f, 1.0f, 0.0f, 1.0f });
         }
+        DrawLine(cities[bestDisplayOrder[0]].x, cities[bestDisplayOrder[0]].y, cities[bestDisplayOrder[bestDisplayOrder.size() - 1]].x, cities[bestDisplayOrder[bestDisplayOrder.size() - 1]].y, { 0.0f, 1.0f, 0.0f, 1.0f });
 
     }
 
@@ -267,6 +359,10 @@ public:
     {
         std::string c{};
         std::string o{};
+        ImGui::Combo(" ", &selectedFile, fileNames, IM_ARRAYSIZE(fileNames));
+        ImGui::SameLine();
+        if (ImGui::Button("Reset"))
+            reset();
         if(founded)
             ImGui::Text("FINISHED!");
         if(!founded) duration = std::chrono::high_resolution_clock::now() - start;
@@ -287,13 +383,6 @@ public:
 
 int main(int argc, char** argv)
 {
-    if (argc > 1)
-    {
-        mainFileName = argv[1];
-        std::cout << mainFileName << "\n";
-    }
-    else mainFileName = nullptr;
-
     LGE::Application Demo;
     Demo.RegisterScene<TSP>("TSP");
     Demo.Run ();
