@@ -65,15 +65,12 @@ public:
             if (line == std::string{ '\n' }) break;
             if (line.find('\n') != std::string::npos) { matCount++; break; }
             matCount++;
-            std::cout << line << "-";
         }
 
         // go to the initial of the file
         file.seekg(0);
 
-        std::cout << "\n";
-        std::cout << "matCount: " << matCount << "\n";
-        std::cout << "\n";
+        std::cout << "Nodes count: " << matCount << "\n";
 
         nodeCount = matCount;
         adjacentMatrix = new int*[matCount];
@@ -90,7 +87,6 @@ public:
             if (line == std::string{ ' ' } || line == std::string{ "" } ||
                 line == std::string{ '\t'} || line == std::string{ '\n' }) continue;
 
-            std::cout << line << "-";
             auto t = line.find('\n');
             if (t != std::string::npos) 
             { 
@@ -153,15 +149,12 @@ public:
                 break; 
             }
             matCount++;
-            std::cout << line << "-";
         }
 
         // go to the initial of the file
         file.seekg(0);
 
-        std::cout << "\n";
-        std::cout << "matCount: " << matCount << "\n";
-        std::cout << "\n";
+        std::cout << "Nodes Count: " << matCount << "\n";
 
         nodeCount = matCount;
         adjacentMatrix = new int* [matCount];
@@ -180,7 +173,6 @@ public:
             if (line == std::string{ ' ' } || line == std::string{ "" } ||
                 line == std::string{ '\t'} || line == std::string{'\n'}) continue;
 
-            std::cout << line << "-";
             auto t = line.find('\n');
             if (t != std::string::npos)
             {
@@ -287,7 +279,7 @@ public:
         auto fileOutputName = fileName.substr(0, fileName.find_first_of('.'));
         double percentage = (((double)countPermutations * 100.0f) / (double)totalPermutations);
         fileOutputName += "_exact_results.txt";
-        std::cout << "\n\nOutput file: " << fileOutputName << "\n";
+        std::cout << "\nOutput file: " << fileOutputName << "\n";
 
         std::ofstream results(fileOutputName);
         results << "Time Taken: " << std::to_string(duration.count()) << "s\n";
