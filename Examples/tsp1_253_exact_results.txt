@@ -1,4 +1,0 @@
-Time Taken: 7.148841s
-Percentage Complete: 100%
-Best Order: 0, 7, 4, 3, 9, 5, 2, 6, 1, 10, 8, 
-Minimal Distance: 253
