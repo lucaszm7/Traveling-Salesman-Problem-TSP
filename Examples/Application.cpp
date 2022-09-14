@@ -39,6 +39,7 @@ public:
 
     unsigned int totalCities = 10;
     bool founded = false;
+    bool makeFile = false;
 
     int subSteps = 10000;
     bool inputFile = false;
@@ -204,7 +205,27 @@ public:
         Draw();
         for (int i = 0; i < subSteps; ++i)
         {
-            if (founded) { countPermutations += i;  break; }
+            if (founded) 
+            { 
+                if (!makeFile)
+                {
+                    makeFile = true;
+                    auto fileOutputName = fileName.substr(0, fileName.find_first_of('.'));
+                    fileOutputName += "_exact_results.txt";
+                    std::cout << "Output file: " << fileOutputName << "\n";
+
+                    std::ofstream results(fileOutputName);
+                    results << "Time Taken: " << std::to_string(duration.count()) << "s\n";
+                    std::string o{};
+                    for (int i = 0; i < order.size(); i++)
+                        o += std::to_string(bestOrder[i]) + ", ";
+                    results << "Best Order: " << o << "\n";
+                    results << "Minimal Distance: " << bestDist << "\n";
+                    results.close();
+                }
+                countPermutations += i;  
+                break; 
+            }
 
             Lexico();
             glm::vec2 dist = calcDist();
