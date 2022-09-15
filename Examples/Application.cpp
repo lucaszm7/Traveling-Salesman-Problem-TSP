@@ -75,7 +75,7 @@ public:
         genAdjacentMatrix();
         initGraph();
 
-        totalPermutations = factorial(nodeCount);
+        totalPermutations = factorial(nodeCount - 1);
 
         LGE::Timer t;
         twiceAroundTheTree();
@@ -381,7 +381,7 @@ public:
 
         // STEP 1
         int largestI = -1;
-        for (int i = 0; i < order.size() - 1; ++i)
+        for (int i = 1; i < order.size() - 1; ++i)
         {
             if (order[i] < order[i + 1]) largestI = i;
         }
@@ -390,7 +390,7 @@ public:
 
         // STEP 2
         int largestJ = -1;
-        for (int j = 0; j < order.size(); ++j)
+        for (int j = 1; j < order.size(); ++j)
         {
             if (order[largestI] < order[j]) largestJ = j;
         }
@@ -523,7 +523,7 @@ public:
         
         ImGui::Separator();
 
-        ImGui::Text("Aprox Time Take: %.2f", durationAprox);
+        ImGui::Text("Aprox Time Take: %.6f", durationAprox);
         ImGui::Text("Smallest Aprox Dist: %.2f", bestAproxDist);
         for (int i = 0; i < bestAproxOrder.size(); i++)
             a += std::to_string(bestAproxOrder[i]) + ", ";
