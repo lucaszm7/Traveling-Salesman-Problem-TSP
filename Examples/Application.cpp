@@ -49,7 +49,7 @@ public:
     bool makeFile = false;
     int fileCount = 1;
 
-    int subSteps = 10000;
+    int subSteps = 100000;
 
     std::chrono::steady_clock::time_point start;
     std::chrono::duration<double> durationExact{0};
@@ -411,7 +411,7 @@ public:
         vals[b] = c;
     }
 
-    void Lexico(int threadId)
+    bool Lexico(int threadId)
     {
         // https://www.quora.com/How-would-you-explain-an-algorithm-that-generates-permutations-using-lexicographic-ordering
 
@@ -421,7 +421,7 @@ public:
         {
             if (threadsOrder[threadId][i] < threadsOrder[threadId][i + 1]) largestI = i;
         }
-        if (largestI == -1) { founded = true ; return; }
+        if (largestI == -1) { founded = true ; return true; }
 
 
         // STEP 2
@@ -438,6 +438,8 @@ public:
 
         // STEP 4: reverse from largestI + 1, to the end
         std::reverse(threadsOrder[threadId].begin() + largestI + 1, threadsOrder[threadId].end());
+        
+        return false;
     }
 
     std::list<int> GetThLexicoOrder(std::list<int> order, unsigned long long permutation)
@@ -464,9 +466,17 @@ public:
 
     void genOutputFile()
     {
+        for (int j = 0; j < numThreads; ++j)
+        {
+            if (threadsBestDist[j] < bestExactDist)
+            {
+                bestExactDist = threadsBestDist[j];
+                bestExactOrder = threadsBestOrder[j];
+            }
+        }
         makeFile = true;
         auto fileOutputName = fileName.substr(0, fileName.find_first_of('.'));
-        double percentage = (((double)countPermutations * 100.0f) / (double)totalPermutations);
+        double percentage = (((double)countPermutations * 100.0) / (double)threadsTotalPermutations);
         fileOutputName += "_results.txt";
         std::cout << "\nOutput file: " << fileOutputName << "\n";
 
@@ -496,16 +506,15 @@ public:
     {
         Draw();
         
+        unsigned long long restPermutations = 0;
         #pragma omp parallel
         {
             int threadId = omp_get_thread_num();
-            int i = 0;
-            for (; i < subSteps; ++i)
+            for (int i = 0; i < subSteps; ++i)
             {
-                if (founded)
-                    break;
+                if (founded) break;
 
-                Lexico(threadId);
+                if(Lexico(threadId)) restPermutations = i + 1;
                 glm::vec2 dist = calcExactDist(threadId);
 
                 if (dist.x < threadsBestDist[threadId])
@@ -528,18 +537,25 @@ public:
                 {
                     if (!makeFile) 
                     {
-                        countPermutations += i;
+                        countPermutations += restPermutations;
                         for (int j = 0; j < numThreads; ++j)
                         {
                             if (threadsBestDist[j] < bestExactDist)
                             {
                                 bestExactDist = threadsBestDist[j];
-                                bestExactOrder = threadsBestDisplayOrder[j];
+                                bestExactOrder = threadsBestOrder[j];
                             }
+                            
+                            if (threadsBestDisplayDist[j] < bestDisplayDist)
+                            {
+                                bestDisplayDist = threadsBestDisplayDist[j];
+                                bestDisplayOrder = threadsBestDisplayOrder[j];
+                            }
+
                         }
 
                         threadsBestDist[0] = bestExactDist;
-                        threadsBestDisplayOrder[0] = bestExactOrder;
+                        threadsBestDisplayOrder[0] = bestDisplayOrder;
 
                         genOutputFile(); 
                         makeFile = true; 
