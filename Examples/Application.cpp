@@ -60,12 +60,10 @@ public:
     unsigned long long threadsTotalPermutations;
 
     std::vector<std::vector<int>> threadsOrder;
-
     std::vector<std::vector<int>> threadsBestOrder;
-    std::vector<int> threadsBestDist;
-
+    std::vector<float> threadsBestDist;
     std::vector<std::vector<int>> threadsBestDisplayOrder;
-    std::vector<int> threadsBestDisplayDist;
+    std::vector<float> threadsBestDisplayDist;
 
     TSP()
     {
@@ -112,7 +110,12 @@ public:
             for (const auto& a : thisOrderVec)
                 std::cout << a << ",";
             std::cout << "\n";
-            threadsOrder[i] = thisOrderVec;
+
+            // Seters
+            threadsBestDist[i] = std::numeric_limits<float>::infinity();
+            threadsBestDisplayDist[i] = std::numeric_limits<float>::infinity();
+            threadsBestOrder[i] = threadsBestDisplayOrder[i] = threadsOrder[i] = thisOrderVec;
+
         }
     }
 
@@ -496,26 +499,23 @@ public:
         #pragma omp parallel
         {
             int threadId = omp_get_thread_num();
-            for (int i = 0; i < subSteps; ++i)
+            int i = 0;
+            for (; i < subSteps; ++i)
             {
                 if (founded)
-                {
-                    countPermutations += i;
-                    if (!makeFile) { genOutputFile(); makeFile = true; }
                     break;
-                }
 
                 Lexico(threadId);
                 glm::vec2 dist = calcExactDist(threadId);
 
                 if (dist.x < threadsBestDist[threadId])
                 {
-                    threadsBestOrder[threadId] = order;
+                    threadsBestOrder[threadId] = threadsOrder[threadId];
                     threadsBestDist[threadId] = dist.x;
                 }
                 if (dist.y < threadsBestDisplayDist[threadId])
                 {
-                    threadsBestDisplayOrder[threadId] = order;
+                    threadsBestDisplayOrder[threadId] = threadsOrder[threadId];
                     threadsBestDisplayDist[threadId] = dist.y;
                 }
             }
@@ -524,6 +524,27 @@ public:
             {
                 if (!founded)
                     countPermutations += subSteps;
+                else
+                {
+                    if (!makeFile) 
+                    {
+                        countPermutations += i;
+                        for (int j = 0; j < numThreads; ++j)
+                        {
+                            if (threadsBestDist[j] < bestExactDist)
+                            {
+                                bestExactDist = threadsBestDist[j];
+                                bestExactOrder = threadsBestDisplayOrder[j];
+                            }
+                        }
+
+                        threadsBestDist[0] = bestExactDist;
+                        threadsBestDisplayOrder[0] = bestExactOrder;
+
+                        genOutputFile(); 
+                        makeFile = true; 
+                    }
+                }
             }
         }
     }
@@ -535,10 +556,10 @@ public:
             DrawPoint(city.x, city.y);
         }
 
-        for (int i = 0; i < order.size() - 1; ++i)
+        for (int i = 0; i < threadsOrder[0].size() - 1; ++i)
         {
             if (!founded)
-                DrawLine(cities[order[i]].x, cities[order[i]].y, cities[order[i + 1]].x, cities[order[i + 1]].y, { 0.0f, 1.0f, 1.0f, 1.0f });
+                DrawLine(cities[threadsOrder[0][i]].x, cities[threadsOrder[0][i]].y, cities[threadsOrder[0][i + 1]].x, cities[threadsOrder[0][i + 1]].y, { 0.0f, 1.0f, 1.0f, 1.0f });
         }
         
         for (int i = 0; i < threadsBestDisplayOrder[0].size() - 1; ++i)
@@ -546,7 +567,6 @@ public:
             DrawLine(cities[threadsBestDisplayOrder[0][i]].x, cities[threadsBestDisplayOrder[0][i]].y, cities[threadsBestDisplayOrder[0][i + 1]].x, cities[threadsBestDisplayOrder[0][i + 1]].y, { 0.0f, 1.0f, 0.0f, 1.0f });
         }
         DrawLine(cities[threadsBestDisplayOrder[0][0]].x, cities[threadsBestDisplayOrder[0][0]].y, cities[threadsBestDisplayOrder[0][threadsBestDisplayOrder[0].size() - 1]].x, cities[threadsBestDisplayOrder[0][threadsBestDisplayOrder[0].size() - 1]].y, { 0.0f, 1.0f, 0.0f, 1.0f });
-
     }
 
     void OnImGuiRender() override
