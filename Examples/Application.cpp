@@ -11,6 +11,7 @@
 #include <chrono>
 #include <utility>
 #include <functional>
+#include <omp.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,6 +57,7 @@ public:
 
     TSP()
     {
+        
         reset();
     }
 
@@ -72,15 +74,19 @@ public:
         bestAproxDist = std::numeric_limits<float>::infinity();
         bestDisplayDist = std::numeric_limits<float>::infinity();
 
+        totalPermutations = factorial(nodeCount - 1);
         genAdjacentMatrix();
         initGraph();
-
-        totalPermutations = factorial(nodeCount - 1);
 
         LGE::Timer t;
         twiceAroundTheTree();
         durationAprox = t.now();
 
+        auto result = GetThLexicoOrder({ 1, 2, 3 }, 5);
+        std::cout << "result: \n";
+        for (const auto& a : result)
+            std::cout << a << ", ";
+        std::cout << "\n";
     }
 
     void genAdjacentMatrix()
@@ -404,6 +410,28 @@ public:
         std::reverse(order.begin() + largestI + 1, order.end());
     }
 
+    std::list<int> GetThLexicoOrder(std::list<int> order, unsigned long long permutation)
+    {
+        std::list<int> result;
+
+        int nFactorial = order.size() - 1;
+        unsigned long long totalFactorial = factorial(nFactorial);
+        int actualIndice = -1;
+        while (nFactorial >= 0)
+        {
+            actualIndice = permutation / totalFactorial;
+            permutation = permutation % totalFactorial;
+            totalFactorial = factorial(--nFactorial);
+
+            auto actualValue = order.begin();
+            std::advance(actualValue, actualIndice);
+            result.push_back(*actualValue);
+            order.erase(actualValue);
+        }
+
+        return result;
+    }
+
     void genOutputFile()
     {
         makeFile = true;
@@ -440,7 +468,7 @@ public:
         for (int i = 0; i < subSteps; ++i)
         {
             if (founded)
-            { 
+            {
                 countPermutations += i;  
                 if (!makeFile) { genOutputFile(); makeFile = true; }
                 break;
