@@ -49,15 +49,26 @@ public:
     bool makeFile = false;
     int fileCount = 1;
 
-    int subSteps = 100000;
+    int subSteps = 10000;
 
     std::chrono::steady_clock::time_point start;
     std::chrono::duration<double> durationExact{0};
     double durationAprox{0};
 
+    // Threads
+    const unsigned int numThreads = omp_get_num_procs();
+    unsigned long long threadsTotalPermutations;
+
+    std::vector<std::vector<int>> threadsOrder;
+
+    std::vector<std::vector<int>> threadsBestOrder;
+    std::vector<int> threadsBestDist;
+
+    std::vector<std::vector<int>> threadsBestDisplayOrder;
+    std::vector<int> threadsBestDisplayDist;
+
     TSP()
     {
-        
         reset();
     }
 
@@ -74,19 +85,35 @@ public:
         bestAproxDist = std::numeric_limits<float>::infinity();
         bestDisplayDist = std::numeric_limits<float>::infinity();
 
-        totalPermutations = factorial(nodeCount - 1);
         genAdjacentMatrix();
         initGraph();
 
+        totalPermutations = factorial(nodeCount - 1);
         LGE::Timer t;
         twiceAroundTheTree();
         durationAprox = t.now();
 
-        auto result = GetThLexicoOrder({ 1, 2, 3 }, 5);
-        std::cout << "result: \n";
-        for (const auto& a : result)
-            std::cout << a << ", ";
-        std::cout << "\n";
+        // Init threads
+        omp_set_num_threads(numThreads);
+        threadsOrder.resize(numThreads);
+        threadsBestOrder.resize(numThreads);
+        threadsBestDist.resize(numThreads);
+        threadsBestDisplayOrder.resize(numThreads);
+        threadsBestDisplayDist.resize(numThreads);
+
+        threadsTotalPermutations = totalPermutations / numThreads;
+        for (int i = 0; i < numThreads; ++i)
+        {
+            std::list<int> orderList;
+            std::copy(order.begin(), order.end(), std::back_inserter(orderList));
+            std::list<int> thisOrderList = GetThLexicoOrder(orderList, i * threadsTotalPermutations);
+            std::vector<int> thisOrderVec{ std::begin(thisOrderList), std::end(thisOrderList) };
+            std::cout << "Order result: \n";
+            for (const auto& a : thisOrderVec)
+                std::cout << a << ",";
+            std::cout << "\n";
+            threadsOrder[i] = thisOrderVec;
+        }
     }
 
     void genAdjacentMatrix()
@@ -180,24 +207,24 @@ public:
         return fac;
     }
 
-    glm::vec2 calcExactDist()
+    glm::vec2 calcExactDist(int threadId)
     {
         // Exact
         glm::vec2 sum = {0, 0};
 
-        for (int i = 0; i < order.size() - 1; ++i)
+        for (int i = 0; i < threadsOrder[threadId].size() - 1; ++i)
         {
-            sum.x += (float)adjacentMatrix[order[i]][order[i + 1]];
+            sum.x += (float)adjacentMatrix[threadsOrder[threadId][i]][threadsOrder[threadId][i + 1]];
         }
-        sum.x += (float)adjacentMatrix[order[0]][order[order.size() - 1]];
+        sum.x += (float)adjacentMatrix[threadsOrder[threadId][0]][threadsOrder[threadId][threadsOrder[threadId].size() - 1]];
 
-        for (int i = 0; i < order.size() - 1; ++i)
+        for (int i = 0; i < threadsOrder[threadId].size() - 1; ++i)
         {
-            auto diff = cities[order[i]] - cities[order[i + 1]];
+            auto diff = cities[threadsOrder[threadId][i]] - cities[threadsOrder[threadId][i + 1]];
             sum.y += sqrt(diff.x * diff.x + diff.y * diff.y);
         }
 
-        auto diff = cities[order[0]] - cities[order[order.size() - 1]];
+        auto diff = cities[threadsOrder[threadId][0]] - cities[threadsOrder[threadId][threadsOrder[threadId].size() - 1]];
         sum.y += sqrt(diff.x * diff.x + diff.y * diff.y);
         
         return sum;
@@ -381,33 +408,33 @@ public:
         vals[b] = c;
     }
 
-    void Lexico()
+    void Lexico(int threadId)
     {
         // https://www.quora.com/How-would-you-explain-an-algorithm-that-generates-permutations-using-lexicographic-ordering
 
         // STEP 1
         int largestI = -1;
-        for (int i = 1; i < order.size() - 1; ++i)
+        for (int i = 1; i < threadsOrder[threadId].size() - 1; ++i)
         {
-            if (order[i] < order[i + 1]) largestI = i;
+            if (threadsOrder[threadId][i] < threadsOrder[threadId][i + 1]) largestI = i;
         }
         if (largestI == -1) { founded = true ; return; }
 
 
         // STEP 2
         int largestJ = -1;
-        for (int j = 1; j < order.size(); ++j)
+        for (int j = 1; j < threadsOrder[threadId].size(); ++j)
         {
-            if (order[largestI] < order[j]) largestJ = j;
+            if (threadsOrder[threadId][largestI] < threadsOrder[threadId][j]) largestJ = j;
         }
 
 
         // STEP 3
-        Swap<int>(order, largestI, largestJ);
+        Swap<int>(threadsOrder[threadId], largestI, largestJ);
 
 
         // STEP 4: reverse from largestI + 1, to the end
-        std::reverse(order.begin() + largestI + 1, order.end());
+        std::reverse(threadsOrder[threadId].begin() + largestI + 1, threadsOrder[threadId].end());
     }
 
     std::list<int> GetThLexicoOrder(std::list<int> order, unsigned long long permutation)
@@ -465,31 +492,40 @@ public:
     void OnUpdate(float fElapsedTime) override
     {
         Draw();
-        for (int i = 0; i < subSteps; ++i)
+        
+        #pragma omp parallel
         {
-            if (founded)
+            int threadId = omp_get_thread_num();
+            for (int i = 0; i < subSteps; ++i)
             {
-                countPermutations += i;  
-                if (!makeFile) { genOutputFile(); makeFile = true; }
-                break;
+                if (founded)
+                {
+                    countPermutations += i;
+                    if (!makeFile) { genOutputFile(); makeFile = true; }
+                    break;
+                }
+
+                Lexico(threadId);
+                glm::vec2 dist = calcExactDist(threadId);
+
+                if (dist.x < threadsBestDist[threadId])
+                {
+                    threadsBestOrder[threadId] = order;
+                    threadsBestDist[threadId] = dist.x;
+                }
+                if (dist.y < threadsBestDisplayDist[threadId])
+                {
+                    threadsBestDisplayOrder[threadId] = order;
+                    threadsBestDisplayDist[threadId] = dist.y;
+                }
             }
 
-            Lexico();
-            glm::vec2 dist = calcExactDist();
-
-            if (dist.x < bestExactDist)
+            #pragma omp single
             {
-                bestExactOrder = order;
-                bestExactDist = dist.x;
-            }
-            if (dist.y < bestDisplayDist)
-            {
-                bestDisplayOrder = order;
-                bestDisplayDist = dist.y;
+                if (!founded)
+                    countPermutations += subSteps;
             }
         }
-        if (!founded) 
-            countPermutations += subSteps;
     }
 
     void Draw()
@@ -505,11 +541,11 @@ public:
                 DrawLine(cities[order[i]].x, cities[order[i]].y, cities[order[i + 1]].x, cities[order[i + 1]].y, { 0.0f, 1.0f, 1.0f, 1.0f });
         }
         
-        for (int i = 0; i < bestDisplayOrder.size() - 1; ++i)
+        for (int i = 0; i < threadsBestDisplayOrder[0].size() - 1; ++i)
         {
-            DrawLine(cities[bestDisplayOrder[i]].x, cities[bestDisplayOrder[i]].y, cities[bestDisplayOrder[i + 1]].x, cities[bestDisplayOrder[i + 1]].y, { 0.0f, 1.0f, 0.0f, 1.0f });
+            DrawLine(cities[threadsBestDisplayOrder[0][i]].x, cities[threadsBestDisplayOrder[0][i]].y, cities[threadsBestDisplayOrder[0][i + 1]].x, cities[threadsBestDisplayOrder[0][i + 1]].y, { 0.0f, 1.0f, 0.0f, 1.0f });
         }
-        DrawLine(cities[bestDisplayOrder[0]].x, cities[bestDisplayOrder[0]].y, cities[bestDisplayOrder[bestDisplayOrder.size() - 1]].x, cities[bestDisplayOrder[bestDisplayOrder.size() - 1]].y, { 0.0f, 1.0f, 0.0f, 1.0f });
+        DrawLine(cities[threadsBestDisplayOrder[0][0]].x, cities[threadsBestDisplayOrder[0][0]].y, cities[threadsBestDisplayOrder[0][threadsBestDisplayOrder[0].size() - 1]].x, cities[threadsBestDisplayOrder[0][threadsBestDisplayOrder[0].size() - 1]].y, { 0.0f, 1.0f, 0.0f, 1.0f });
 
     }
 
@@ -530,7 +566,7 @@ public:
         if(!founded) durationExact = std::chrono::high_resolution_clock::now() - start;
         ImGui::Text("Exact Time taked: %.2f s", durationExact.count());
 
-        double percentage = (((double)countPermutations * 100.0f) / (double)totalPermutations);
+        double percentage = (((double)countPermutations * 100.0f) / (double)threadsTotalPermutations);
         ImGui::Text("Completeness: %.6f%%", percentage);
         if (founded)
         {
@@ -538,13 +574,13 @@ public:
             ImGui::Text("FINISHED!");
         }
 
-        for (const auto& ord : order)
+        for (const auto& ord : threadsOrder[0])
             c += std::to_string(ord) + ", ";
         ImGui::Text("Order: \n%s\n", c.c_str());
 
         ImGui::Separator();
 
-        ImGui::Text("Smallest Exact Dist: %.2f", bestExactDist);
+        ImGui::Text("Smallest Exact Dist: %.2f", threadsBestDist[0]);
         for (int i = 0; i < order.size(); i++)
             o += std::to_string(bestExactOrder[i]) + ", ";
         ImGui::Text("Best Exact Order: \n%s\n", o.c_str());
