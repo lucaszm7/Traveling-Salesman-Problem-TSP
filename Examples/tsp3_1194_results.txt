@@ -1,12 +1,12 @@
 -------------------------------------------------------------------
 ------------------------- Exact Algorithm -------------------------
-Exact Time Taken: 66.671715s
-Percentage Complete: 1.11037%
-Best Exact Order: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 
-Minimal Exact Distance: inf
+Exact Time Taken: 1543.926128s
+Percentage Complete: 31.907%
+Best Exact Order: 0, 3, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 1, 
+Minimal Exact Distance: 1236
 -------------------------------------------------------------------
 ------------------------- 2-Aprox Algorithm -----------------------
-Aprox Time Taken: 8.1e-05
+Aprox Time Taken: 9.39e-05
 Best Aprox Order: 11, 12, 13, 14, 8, 7, 5, 6, 4, 3, 2, 0, 1, 10, 9, 
 Minimal Aprox Distance: 1370
 --------------------------------------------------------------------
